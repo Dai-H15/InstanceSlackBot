@@ -9,6 +9,18 @@
 
 このプロジェクトはMITライセンスの下で提供されています。詳細は[LICENSE](./LICENSE)ファイルを参照してください。
 
+## 使用方法
+```
+pip install instanceSlackBot
+```
+
+Botトークンを事前に入手する必要があり、適切な権限が付与されていることが必要となります
+```
+from instanceSlackBot import SlackBotSet
+
+instance = SlackBotSet(api_token="hogehoge")
+```
+
 ## 使用しているライブラリ
 
 このプロジェクトでは以下のライブラリを使用しています：
