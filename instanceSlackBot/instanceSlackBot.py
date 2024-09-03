@@ -33,8 +33,14 @@ class SlackBotSet:
             return "チャンネル名が重複しています"
 
     class OtherError(MyException):
+        def __init__(self, arg):
+            self.arg = arg
+
         def __str__(self):
-            return "不明なエラーで続行が不可能となりました。"
+            if self.arg.response["error"] == "invalid_auth":
+                return "認証が無効です。APIトークンを確認してください。"
+            else:
+                return "不明なエラーで続行が不可能となりました。"
 
     class UserNotFound(MyException):
         def __str__(self):
@@ -85,7 +91,7 @@ class SlackBotSet:
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "users_not_found":
                 raise self.UserNotFound
-            raise self.OtherError
+            raise self.OtherError(e)
 
     def add_user_id_list_by_id(self, id: str):
         try:
@@ -96,7 +102,7 @@ class SlackBotSet:
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "users_not_found":
                 raise self.UserNotFound
-            raise self.OtherError
+            raise self.OtherError(e)
         print("User has been added to the list")
 
     def create_channel(self):
@@ -119,7 +125,7 @@ class SlackBotSet:
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "name_taken":
                 raise self.ChannelIsDuplicated(e)
-            raise self.OtherError
+            raise self.OtherError(e)
 
     def show_user_id_list(self):
         """
