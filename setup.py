@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
-
+from instanceSlackBot import __version__
 NAME = "instanceSlackBot"
 AUTHOR = "Daichi Matsumoto"
 AUTHOR_EMAIL = "s1f102200828@iniad.org"
 URL = "https://github.com/Dai-H15/InstanceSlackBot"
 LICENSE = "MIT"
 DOWNLOAD_URL = "https://github.com/Dai-H15/InstanceSlackBot"
-VERSION = "1.0.0"
+VERSION = __version__
 PYTHON_REQUIRES = ">=3.10"
 INSTALL_REQUIRES = [
     "slack_sdk >=3.31.0",

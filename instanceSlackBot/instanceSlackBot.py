@@ -3,23 +3,7 @@ import slack_sdk
 from slack_sdk import WebClient
 
 
-class SlackBotSet:
-    """
-    SlackBotによる操作をインスタンス内にて行うことで、
-    複数のチャンネルの作成やメッセージの送信時に管理しやすくするライブラリ
-    
-
-    Raises:
-        UserNotFound: ユーザーIDが未定義、見当たらない場合の例外
-        OtherError: 未定義の例外に対する例外
-        ChannelIsDuplicated: チャンネルの重複に対する例外
-        ChannelNotFound: チャンネルがみつからない、未定義の際の例外
-        UserExists: すでにユーザーが参加済みの場合の例外
-        TimeIsPast: 過去の日時が指定された場合の例外
-        MessageIsEmpty: メッセージが未定義・空白の場合の例外
-    """
-
-    # エラー出力
+class SlackExceptions(Exception):
     class MyException(Exception):
         def __init__(self, arg=""):
             self.arg = arg
@@ -64,6 +48,32 @@ class SlackBotSet:
                 message += f"ユーザーID: {data['user']}\n理由: {data['error']}"
             return message
 
+    class UserListIsEmpty(MyException):
+        def __init__(self, arg):
+            self.arg = arg
+
+        def __str__(self) -> str:
+            return "ユーザーがインスタンス内に追加されていません。"
+
+
+class SlackBotSet:
+    """
+    SlackBotによる操作をインスタンス内にて行うことで、
+    複数のチャンネルの作成やメッセージの送信時に管理しやすくするライブラリ
+    
+
+    Raises:
+        UserNotFound: ユーザーIDが未定義、見当たらない場合の例外
+        OtherError: 未定義の例外に対する例外
+        ChannelIsDuplicated: チャンネルの重複に対する例外
+        ChannelNotFound: チャンネルがみつからない、未定義の際の例外
+        UserExists: すでにユーザーが参加済みの場合の例外
+        TimeIsPast: 過去の日時が指定された場合の例外
+        MessageIsEmpty: メッセージが未定義・空白の場合の例外
+    """
+
+    # エラー出力
+
     def __init__(self, api_token: str):
         self._user_id_list = []
         self.channel_id = ""
@@ -76,6 +86,12 @@ class SlackBotSet:
         self._is_channel_name_is_set = False
         self._message = ""
         self._client = WebClient(token=api_token)
+        try:
+            self._client.auth_test(
+                api_token=api_token
+            )
+        except slack_sdk.errors.SlackApiError as E:
+            raise SlackExceptions.OtherError(E)
 
     def add_user_id_list_by_email(self, mailaddr: str):
         """
@@ -90,8 +106,8 @@ class SlackBotSet:
             print(f"{mailaddr}: {user_id}")
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "users_not_found":
-                raise self.UserNotFound
-            raise self.OtherError(e)
+                raise SlackExceptions.UserNotFound
+            raise SlackExceptions.OtherError(e)
 
     def add_user_id_list_by_id(self, id: str):
         try:
@@ -101,8 +117,8 @@ class SlackBotSet:
             self._user_id_list.append(id)
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "users_not_found":
-                raise self.UserNotFound
-            raise self.OtherError(e)
+                raise SlackExceptions.UserNotFound
+            raise SlackExceptions.OtherError(e)
         print("User has been added to the list")
 
     def create_channel(self):
@@ -124,20 +140,22 @@ class SlackBotSet:
 
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "name_taken":
-                raise self.ChannelIsDuplicated(e)
-            raise self.OtherError(e)
+                raise SlackExceptions.ChannelIsDuplicated(e)
+            raise SlackExceptions.OtherError(e)
 
     def show_user_id_list(self):
         """
         インスタンスに設定されたユーザー一覧を表示
         """
+        self.check_user_list()
         print(self._user_id_list)
 
     def invite_users(self):
         """インスタンス内で作成されたチャンネルにユーザーをすべて招待
         """
         if self.channel_id.strip() == "":
-            raise self.ChannelNotFound
+            raise SlackExceptions.ChannelNotFound
+        self.check_user_list()
         try:
             self._client.conversations_invite(
                 channel=self.channel_id,
@@ -146,7 +164,7 @@ class SlackBotSet:
             print("users are invited.")
         except slack_sdk.errors.SlackApiError as e:
             if e.response["error"] == "already_in_channel":
-                raise self.UserExists(e)
+                raise SlackExceptions.UserExists(e)
 
     def post_bot_message_by_instance(self):
         """botがメッセージを送信します。
@@ -155,12 +173,12 @@ class SlackBotSet:
          = create_channel(), set_message() が実行された後のみ呼び出し可能
 
         Raises:
-            self.ChannelNotFound: チャンネルが見つからない際の例外
+            SlackExceptions.ChannelNotFound: チャンネルが見つからない際の例外
         """
         if self.channel_id.strip() == "":
-            raise self.ChannelNotFound
+            raise SlackExceptions.ChannelNotFound
         if self._message.strip() == "":
-            raise self.MessageIsEmpty
+            raise SlackExceptions.MessageIsEmpty
 
         self._client.chat_postMessage(
             channel=self.channel_id,
@@ -204,12 +222,12 @@ class SlackBotSet:
             channel_id (str:必須): 送信先のチャンネルのID
 
         Raises:
-            self.ChannelNotFound: チャンネルIDが見つからない際の例外
+            SlackExceptions.ChannelNotFound: チャンネルIDが見つからない際の例外
         """
         if channel_id.strip() == "":
-            raise self.ChannelNotFound
+            raise SlackExceptions.ChannelNotFound
         if self._message.strip() == "":
-            raise self.MessageIsEmpty
+            raise SlackExceptions.MessageIsEmpty
         self._client.chat_postMessage(
             channel=channel_id,
             text=self._message
@@ -223,17 +241,17 @@ class SlackBotSet:
             time (datetime.datetime): 送信日時。現在時刻よりも未来であることが必要
 
         Raises:
-            self.ChannelNotFound: チャンネルが未定義
-            self.MessageIsEmpty: メッセージが未定義
-            self.TimeIsPast: 過去の時間が指定された
+            SlackExceptions.ChannelNotFound: チャンネルが未定義
+            SlackExceptions.MessageIsEmpty: メッセージが未定義
+            SlackExceptions.TimeIsPast: 過去の時間が指定された
         """
         if self.channel_id.strip() == "":
-            raise self.ChannelNotFound
+            raise SlackExceptions.ChannelNotFound
         if self._message.strip() == "":
-            raise self.MessageIsEmpty
+            raise SlackExceptions.MessageIsEmpty
         unixtime = int(time.timestamp())
         if datetime.datetime.now().timestamp() > unixtime:
-            raise self.TimeIsPast
+            raise SlackExceptions.TimeIsPast
 
         self._client.chat_scheduleMessage(
             channel=self.channel_id,
@@ -252,17 +270,17 @@ class SlackBotSet:
             time (datetime.datetime): 送信日時。現在時刻よりも未来であることが必要
 
         Raises:
-            self.ChannelNotFound: チャンネルが未定義
-            self.MessageIsEmpty: メッセージが未定義
-            self.TimeIsPast: 過去の時間が指定された
+            SlackExceptions.ChannelNotFound: チャンネルが未定義
+            SlackExceptions.MessageIsEmpty: メッセージが未定義
+            SlackExceptions.TimeIsPast: 過去の時間が指定された
         """
         if channel_id.strip() == "":
-            raise self.ChannelNotFound
+            raise SlackExceptions.ChannelNotFound
         if self._message.strip() == "":
-            raise self.MessageIsEmpty
+            raise SlackExceptions.MessageIsEmpty
         unixtime = int(time.timestamp())
         if datetime.datetime.now().timestamp() > unixtime:
-            raise self.TimeIsPast
+            raise SlackExceptions.TimeIsPast
 
         self._client.chat_scheduleMessage(
             channel=channel_id,
@@ -270,3 +288,74 @@ class SlackBotSet:
             post_at=unixtime
         )
         print(f"message will send at {time}.")
+
+    def send_message_text_to_user_by_email(
+        self,
+        mailaddr: str,
+        text: str
+            ):
+        """send_message_text_to_user_by_email
+
+        Args:
+            mailaddr (str): 送信先ユーザーのメールアドレス
+            ユーザーはbotのワークスペースに存在する必要があります
+            text (str): 送信するメッセージ
+
+        Raises:
+            SlackExceptions.UserListIsEmpty: ユーザーがリストに存在しない
+            SlackExceptions.MessageIsEmpty: メッセージが入力されていない
+            SlackExceptions.OtherError: その他のエラー
+        """
+        try:
+            user_id = self._client.users_lookupByEmail(
+                    email=mailaddr
+                    )["user"]["id"]
+        except slack_sdk.errors.SlackApiError as E:
+            if E.response["error"] == "users_not_found":
+                raise SlackExceptions.UserNotFound
+            else:
+                raise SlackExceptions.OtherError(E)
+        try:
+            self._client.chat_postMessage(
+                text=text,
+                channel=user_id
+            )
+            print("message is sent.")
+        except slack_sdk.errors.SlackApiError as E:
+            if E.arg.response["error"] == "no_text":
+                raise SlackExceptions.MessageIsEmpty
+            else:
+                raise SlackExceptions.OtherError(E)
+
+    def send_message_text_to_user_by_userlist(
+        self,
+        text: str
+            ):
+        """send_message_text_to_user_by_userlist
+
+        Args:
+            text (str): 送信するメッセージ
+
+        Raises:
+            SlackExceptions.UserListIsEmpty: ユーザーがリストに存在しない
+            SlackExceptions.MessageIsEmpty: メッセージが入力されていない
+            SlackExceptions.OtherError: その他のエラー
+        """
+        users = self._user_id_list
+        self.check_user_list()
+        try:
+            for user in users:
+                self._client.chat_postMessage(
+                    text=text,
+                    channel=user
+                )
+                print(f"message is sent to {user}")
+        except slack_sdk.errors.SlackApiError as E:
+            if E.response["error"] == "no_text":
+                raise SlackExceptions.MessageIsEmpty
+            else:
+                raise SlackExceptions.OtherError(E)
+
+    def check_user_list(self):
+        if len(self._user_id_list) < 1:
+            raise SlackExceptions.UserListIsEmpty
