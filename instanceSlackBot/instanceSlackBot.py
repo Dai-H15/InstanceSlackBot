@@ -371,6 +371,18 @@ class SlackBotSet:
             raise SlackExceptions.UserListIsEmpty
 
     def is_user_is_valid_with_email(self, email: str = ""):
+        """
+        ユーザーがワークスペースに属しているかを判定
+        Args:
+            email (str):判定対象のメールアドレス
+
+        Raises:
+            SlackExceptions.EmailIsEmpty: メールアドレスが指定されていない際の例外
+            SlackExceptions.UserNotFound: ユーザーがワークスペースに属していない際の例外
+
+        Returns:
+            ユーザーがワークスペースに属している際はTrueを返します
+        """
         if email == "":
             raise SlackExceptions.EmailIsEmpty
         try:
