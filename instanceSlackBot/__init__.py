@@ -1,2 +1,3 @@
 from .instanceSlackBot import SlackBotSet
-__version__ = "1.1.0"
+from .instanceSlackBot import SlackExceptions
+__version__ = "1.2.2"

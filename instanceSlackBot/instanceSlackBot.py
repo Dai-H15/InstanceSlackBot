@@ -55,6 +55,14 @@ class SlackExceptions(Exception):
         def __str__(self) -> str:
             return "ユーザーがインスタンス内に追加されていません。"
 
+    class APITokenIsEmpty(MyException):
+        def __str__(self) -> str:
+            return "APIトークンが入力されていません"
+
+    class EmailIsEmpty(MyException):
+        def __str__(self) -> str:
+            return "emailが指定されていません。"
+
 
 class SlackBotSet:
     """
@@ -74,7 +82,7 @@ class SlackBotSet:
 
     # エラー出力
 
-    def __init__(self, api_token: str):
+    def __init__(self, api_token: str = ""):
         self._user_id_list = []
         self.channel_id = ""
         self._channel_name_init = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -85,6 +93,8 @@ class SlackBotSet:
 
         self._is_channel_name_is_set = False
         self._message = ""
+        if api_token == "":
+            raise SlackExceptions.APITokenIsEmpty
         self._client = WebClient(token=api_token)
         try:
             self._client.auth_test(
@@ -359,3 +369,14 @@ class SlackBotSet:
     def check_user_list(self):
         if len(self._user_id_list) < 1:
             raise SlackExceptions.UserListIsEmpty
+
+    def is_user_is_valid_with_email(self, email: str = ""):
+        if email == "":
+            raise SlackExceptions.EmailIsEmpty
+        try:
+            self._client.users_lookupByEmail(
+                email=email
+            )
+            return True
+        except slack_sdk.errors.SlackApiError:
+            raise SlackExceptions.UserNotFound
