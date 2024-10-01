@@ -203,7 +203,7 @@ class SlackBotSet:
             name (str:必須): チャンネルの名称
             デフォルトで指定されている値に追記されます。
         """
-        self._channel_name = f"{self._channel_name_init}_{name}"
+        self._channel_name = f"{name}"
         print(self._channel_name)
         self._is_channel_name_is_set = True
 
