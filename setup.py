@@ -7,7 +7,7 @@ URL = "https://github.com/Dai-H15/InstanceSlackBot"
 LICENSE = "MIT"
 DOWNLOAD_URL = "https://github.com/Dai-H15/InstanceSlackBot"
 VERSION = __version__
-PYTHON_REQUIRES = ">=3.10"
+PYTHON_REQUIRES = ">=3.6"
 INSTALL_REQUIRES = [
     "slack_sdk >=3.31.0",
 ]
